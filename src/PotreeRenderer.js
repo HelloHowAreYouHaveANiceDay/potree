@@ -142,6 +142,7 @@ let attributeLocations = {
 	"indices": 7,
 	"normal": 8,
 	"spacing": 9,
+	"gpsTime": 10,
 };
 
 class Shader {
@@ -160,6 +161,9 @@ class Shader {
 
 		this.uniformLocations = {};
 		this.attributeLocations = {};
+		this.uniformBlockIndices = {};
+		this.uniformBlocks = {};
+		this.uniforms = {};
 
 		this.update(vsSource, fsSource);
 	}
@@ -192,6 +196,7 @@ class Shader {
 
 		this.uniformLocations = {};
 		this.attributeLocations = {};
+		this.uniforms = {};
 
 		gl.useProgram(null);
 
@@ -202,6 +207,8 @@ class Shader {
 			this.fs = cached.fs;
 			this.attributeLocations = cached.attributeLocations;
 			this.uniformLocations = cached.uniformLocations;
+			this.uniformBlocks = cached.uniformBlocks;
+			this.uniforms = cached.uniforms;
 
 			return;
 		} else {
@@ -255,6 +262,42 @@ class Shader {
 					let location = gl.getUniformLocation(program, uniform.name);
 
 					this.uniformLocations[uniform.name] = location;
+					this.uniforms[uniform.name] = {
+						location: location,
+						value: null,
+					};
+				}
+			}
+
+			// uniform blocks
+			if(gl instanceof WebGL2RenderingContext){ 
+				let numBlocks = gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS);
+
+				for (let i = 0; i < numBlocks; i++) {
+					let blockName = gl.getActiveUniformBlockName(program, i);
+
+					let blockIndex = gl.getUniformBlockIndex(program, blockName);
+
+					this.uniformBlockIndices[blockName] = blockIndex;
+
+					gl.uniformBlockBinding(program, blockIndex, blockIndex);
+					let dataSize = gl.getActiveUniformBlockParameter(program, blockIndex, gl.UNIFORM_BLOCK_DATA_SIZE);
+
+					let uBuffer = gl.createBuffer();	
+					gl.bindBuffer(gl.UNIFORM_BUFFER, uBuffer);
+					gl.bufferData(gl.UNIFORM_BUFFER, dataSize, gl.DYNAMIC_READ);
+
+					gl.bindBufferBase(gl.UNIFORM_BUFFER, blockIndex, uBuffer);
+
+					gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+					this.uniformBlocks[blockName] = {
+						name: blockName,
+						index: blockIndex,
+						dataSize: dataSize,
+						buffer: uBuffer
+					};
+
 				}
 			}
 
@@ -263,7 +306,9 @@ class Shader {
 				vs: this.vs,
 				fs: this.fs,
 				attributeLocations: this.attributeLocations,
-				uniformLocations: this.uniformLocations
+				uniformLocations: this.uniformLocations,
+				uniforms: this.uniforms,
+				uniformBlocks: this.uniformBlocks,
 			};
 
 			this.cache.set(`${this.vsSource}, ${this.fsSource}`, cached);
@@ -288,24 +333,44 @@ class Shader {
 
 	setUniform1f(name, value) {
 		const gl = this.gl;
-		const location = this.uniformLocations[name];
+		const uniform = this.uniforms[name];
 
-		if (location == null) {
+		if (uniform === undefined) {
 			return;
 		}
 
-		gl.uniform1f(location, value);
+		if(uniform.value === value){
+			return;
+		}
+
+		uniform.value = value;
+
+		gl.uniform1f(uniform.location, value);
+
+		//const location = this.uniformLocations[name];
+
+		//if (location == null) {
+		//	return;
+		//}
+
+		//gl.uniform1f(location, value);
 	}
 
 	setUniformBoolean(name, value) {
 		const gl = this.gl;
-		const location = this.uniformLocations[name];
+		const uniform = this.uniforms[name];
 
-		if (location == null) {
+		if (uniform === undefined) {
 			return;
 		}
 
-		gl.uniform1i(location, value);
+		if(uniform.value === value){
+			return;
+		}
+
+		uniform.value = value;
+
+		gl.uniform1i(uniform.location, value);
 	}
 
 	setUniformTexture(name, value) {
@@ -605,6 +670,27 @@ export class Renderer {
 
 		let mat4holder = new Float32Array(16);
 
+		let gpsMin = Infinity;
+		let gpsMax = -Infinity
+		for (let node of nodes) {
+
+			if(node instanceof PointCloudOctreeNode){
+				let geometryNode = node.geometryNode;
+
+				if(geometryNode.gpsTime){
+					let {offset, range} = geometryNode.gpsTime;
+					let nodeMin = offset;
+					let nodeMax = offset + range;
+
+					gpsMin = Math.min(gpsMin, nodeMin);
+					gpsMax = Math.max(gpsMax, nodeMax);
+				}
+			}
+
+			break;
+
+		}
+
 		let i = 0;
 		for (let node of nodes) {
 
@@ -752,6 +838,30 @@ export class Renderer {
 
 			let geometry = node.geometryNode.geometry;
 
+			if(node.geometryNode.gpsTime){
+				let nodeMin = node.geometryNode.gpsTime.offset;
+				let nodeMax = nodeMin + node.geometryNode.gpsTime.range;
+
+				let gpsOffset = (+nodeMin - gpsMin);
+				let gpsRange = (gpsMax - gpsMin);
+
+				shader.setUniform1f("uGPSOffset", gpsOffset);
+				shader.setUniform1f("uGPSRange", gpsRange);
+			}
+
+			{
+				let uFilterReturnNumberRange = material.uniforms.uFilterReturnNumberRange.value;
+				let uFilterNumberOfReturnsRange = material.uniforms.uFilterNumberOfReturnsRange.value;
+				let uFilterGPSTimeClipRange = material.uniforms.uFilterGPSTimeClipRange.value;
+				
+				let gpsCliPRangeMin = uFilterGPSTimeClipRange[0] - gpsMin;
+				let gpsCliPRangeMax = uFilterGPSTimeClipRange[1] - gpsMin;
+				
+				shader.setUniform2f("uFilterReturnNumberRange", uFilterReturnNumberRange);
+				shader.setUniform2f("uFilterNumberOfReturnsRange", uFilterNumberOfReturnsRange);
+				shader.setUniform2f("uFilterGPSTimeClipRange", [gpsCliPRangeMin, gpsCliPRangeMax]);
+			}
+
 			let webglBuffer = null;
 			if(!this.buffers.has(geometry)){
 				webglBuffer = this.createBuffer(geometry);
@@ -831,9 +941,13 @@ export class Renderer {
 
 				let numSnapshots = material.snapEnabled ? material.numSnapshots : 0;
 				let numClipBoxes = (material.clipBoxes && material.clipBoxes.length) ? material.clipBoxes.length : 0;
-				//let numClipSpheres = (material.clipSpheres && material.clipSpheres.length) ? material.clipSpheres.length : 0;
 				let numClipSpheres = (params.clipSpheres && params.clipSpheres.length) ? params.clipSpheres.length : 0;
 				let numClipPolygons = (material.clipPolygons && material.clipPolygons.length) ? material.clipPolygons.length : 0;
+
+				//debugger;
+
+
+
 				let defines = [
 					`#define num_shadowmaps ${shadowMaps.length}`,
 					`#define num_snapshots ${numSnapshots}`,
@@ -842,13 +956,44 @@ export class Renderer {
 					`#define num_clippolygons ${numClipPolygons}`,
 				];
 
+
+				if(octree.pcoGeometry.root.isLoaded()){
+					let attributes = octree.pcoGeometry.root.geometry.attributes;
+
+					if(attributes.gpsTime){
+						defines.push("#define clip_gps_enabled");
+					}
+
+					if(attributes.returnNumber){
+						defines.push("#define clip_return_number_enabled");
+					}
+
+					if(attributes.numberOfReturns){
+						defines.push("#define clip_number_of_returns_enabled");
+					}
+
+				}
+
 				//vs = `#define num_shadowmaps ${shadowMaps.length}\n` + vs;
 				//fs = `#define num_shadowmaps ${shadowMaps.length}\n` + fs;
 
 				let definesString = defines.join("\n");
 
-				vs = `${definesString}\n${vs}`;
-				fs = `${definesString}\n${fs}`;
+				let vsVersionIndex = vs.indexOf("#version ");
+				let fsVersionIndex = fs.indexOf("#version ");
+
+				if(vsVersionIndex >= 0){
+					vs = vs.replace(/(#version .*)/, `$1\n${definesString}`)
+				}else{
+					vs = `${definesString}\n${vs}`;
+				}
+
+				if(fsVersionIndex >= 0){
+					fs = fs.replace(/(#version .*)/, `$1\n${definesString}`)
+				}else{
+					fs = `${definesString}\n${fs}`;
+				}
+
 
 				shader.update(vs, fs);
 
@@ -993,9 +1138,29 @@ export class Renderer {
 				//gl.uniformMatrix4fv(lClipSpheres, false, material.uniforms.clipSpheres.value);
 			}
 
-			shader.setUniform1f("size", material.size);
-			shader.setUniform1f("maxSize", material.uniforms.maxSize.value);
-			shader.setUniform1f("minSize", material.uniforms.minSize.value);
+			if(Potree.Features.WEBGL2.isSupported()){
+				let buffer = new ArrayBuffer(12);
+				let bufferf32 = new Float32Array(buffer);
+				bufferf32[0] = material.size;
+				bufferf32[1] = material.uniforms.minSize.value;
+				bufferf32[2] = material.uniforms.maxSize.value;
+
+				let block = shader.uniformBlocks["ubo_point"];
+
+				gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, block.buffer);
+
+				gl.bindBuffer(gl.UNIFORM_BUFFER, block.buffer);
+				gl.bufferSubData(gl.UNIFORM_BUFFER, 0, buffer);
+				gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+				
+			}else{
+				shader.setUniform1f("size", material.size);
+				shader.setUniform1f("maxSize", material.uniforms.maxSize.value);
+				shader.setUniform1f("minSize", material.uniforms.minSize.value);
+			}
+
+
+
 
 			// uniform float uPCIndex
 			shader.setUniform1f("uOctreeSpacing", material.spacing);

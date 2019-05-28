@@ -6,18 +6,12 @@ const exec = require('child_process').exec;
 
 const fs = require("fs");
 const concat = require('gulp-concat');
-const size = require('gulp-size');
-const rename = require('gulp-rename');
-const uglify = require('gulp-uglify');
 const gutil = require('gulp-util');
 const through = require('through');
-const os = require('os');
 const File = gutil.File;
 const connect = require('gulp-connect');
 const watch = require('glob-watcher');
 
-
-let server;
 
 let paths = {
 	laslaz: [
@@ -42,13 +36,15 @@ let workers = {
 	"LASDecoderWorker": [
 		"src/workers/LASDecoderWorker.js"
 	],
-	//"BinaryDecoderWorker": [
-	//	"src/workers/BinaryDecoderWorker.js",
-	//	"src/Version.js",
-	//	"src/loader/PointAttributes.js",
-	//	"src/InterleavedBuffer.js",
-	//	"src/utils/toInterleavedBufferAttribute.js",
-	//],
+	"EptLaszipDecoderWorker": [
+		"src/workers/EptLaszipDecoderWorker.js"
+	],
+	"EptBinaryDecoderWorker": [
+		"src/workers/EptBinaryDecoderWorker.js"
+	],
+	"EptZstandardDecoderWorker": [
+		"src/workers/EptZstandardDecoderWorker.js"
+	],
 	"GreyhoundBinaryDecoderWorker": [
 		"libs/plasio/workers/laz-perf.js",
 		"src/workers/GreyhoundBinaryDecoderWorker.js",
@@ -70,18 +66,21 @@ let shaders = [
 	"src/materials/shaders/edl.vs",
 	"src/materials/shaders/edl.fs",
 	"src/materials/shaders/blur.vs",
-	"src/materials/shaders/blur.fs"
+	"src/materials/shaders/blur.fs",
+
+	"src/materials/shaders/pointcloud.gl2.vs",
+	"src/materials/shaders/pointcloud.gl2.fs",
 ];
 
 
 gulp.task("workers", function(){
 
 	for(let workerName of Object.keys(workers)){
-		
+
 		gulp.src(workers[workerName])
 			.pipe(concat(`${workerName}.js`))
 			.pipe(gulp.dest('build/potree/workers'));
-		
+
 	}
 
 });
@@ -93,13 +92,6 @@ gulp.task("shaders", function(){
 });
 
 gulp.task("build", ['workers','shaders', "icons_viewer", "examples_page"], function(){
-	//gulp.src(paths.potree)
-	//	.pipe(concat('potree.js'))
-	//	.pipe(gulp.dest('build/potree'));
-
-	//gulp.src(paths.laslaz)
-	//	.pipe(concat('laslaz.js'))
-	//	.pipe(gulp.dest('build/potree'));
 
 	gulp.src(paths.html)
 		.pipe(gulp.dest('build/potree'));
@@ -135,7 +127,7 @@ gulp.task('examples_page', function() {
 		for(let file of files){
 			let isHandled = false;
 			for(let url of urls){
-				
+
 				if(file.indexOf(url) !== -1){
 					isHandled = true;
 				}
@@ -149,7 +141,7 @@ gulp.task('examples_page', function() {
 			.filter(file => file.indexOf(".html") > 0)
 			.filter(file => file !== "page.html");
 
-		
+
 		for(let file of unhandled){
 			unhandledCode += `
 				<a href="${file}" class="unhandled">${file}</a>
@@ -184,7 +176,7 @@ gulp.task('examples_page', function() {
 		</a>
 		`;
 	}
-	
+
 
 	let page = `
 		<html>
@@ -197,30 +189,30 @@ gulp.task('examples_page', function() {
 			}
 
 			.thumb{
-				background-size: 140px 140px; 
-				width: 140px; 
-				height: 140px; 
-				border-radius: 5px; 
-				border: 1px solid black; 
-				box-shadow: 3px 3px 3px 0px #555; 
-				margin: 0px; 
+				background-size: 140px 140px;
+				width: 140px;
+				height: 140px;
+				border-radius: 5px;
+				border: 1px solid black;
+				box-shadow: 3px 3px 3px 0px #555;
+				margin: 0px;
 				float: left;
 			}
 
 			.thumb-label{
-				font-size: large; 
-				text-align: center; 
-				font-weight: bold; 
-				color: #FFF; 
-				text-shadow:black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px; 
+				font-size: large;
+				text-align: center;
+				font-weight: bold;
+				color: #FFF;
+				text-shadow:black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px, black 0 0 5px;
 				height: 100%;
 			}
 
 			.unhandled_container{
-				max-width: 1200px; 
-				margin: auto; 
-				margin-top: 50px; 
-				
+				max-width: 1200px;
+				margin: auto;
+				margin-top: 50px;
+
 			}
 
 			.unhandled{
@@ -268,8 +260,8 @@ gulp.task('examples_page', function() {
 				grid-row-start: 1;
 				grid-row-end: 1;
 
-				max-width: 1200px; 
-				margin: auto; 
+				max-width: 1200px;
+				margin: auto;
 				margin-top: 20px
 			}
 
@@ -288,8 +280,8 @@ gulp.task('examples_page', function() {
 				grid-row-start: 2;
 				grid-row-end: 2;
 
-				max-width: 1200px; 
-				margin: auto; 
+				max-width: 1200px;
+				margin: auto;
 				margin-top: 20px;
 			}
 
@@ -316,7 +308,7 @@ gulp.task('examples_page', function() {
 
 				</div>
 
-				
+
 
 				<div class="unhandled_container">
 					<h1>Other</h1>
@@ -343,12 +335,12 @@ gulp.task('icons_viewer', function() {
 	let iconsPath = "resources/icons";
 
 	fs.readdir(iconsPath, function(err, items) {
-		
+
 		let svgs = items.filter(item => item.endsWith(".svg"));
 		let other = items.filter(item => !item.endsWith(".svg"));
 
 		items = [...svgs, ...other];
-	
+
 		let iconsCode = ``;
 		for(let item of items){
 			let extension = path.extname(item);
@@ -411,11 +403,11 @@ gulp.task('watch', ["build", "webserver"], function() {
 	//gulp.run("webserver");
 
 	let watchlist = [
-		'src/**/*.js', 
-		'src/**/*.css', 
-		'src/**/*.html', 
-		'src/**/*.vs', 
-		'src/**/*.fs', 
+		'src/**/*.js',
+		'src/**/*.css',
+		'src/**/*.html',
+		'src/**/*.vs',
+		'src/**/*.fs',
 		'resources/**/*',
 		'examples//**/*.json',
 	];
@@ -423,7 +415,7 @@ gulp.task('watch', ["build", "webserver"], function() {
 	let blacklist = [
 		'resources/icons/index.html'
 	];
-	
+
 	let watcher = watch(watchlist, cb => {
 
 		{ // abort if blacklisted
@@ -521,7 +513,7 @@ let encodeShader = function(fileName, varname, opt){
 			//console.log(fname);
 
 			let content = new Buffer(b).toString();
-			
+
 			let prep = `\Shaders["${fname}"] = \`${content}\`\n`;
 
 			joinedContent += prep;

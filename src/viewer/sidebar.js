@@ -20,6 +20,8 @@ import {EarthControls} from "../navigation/EarthControls.js"
 import {FirstPersonControls} from "../navigation/FirstPersonControls.js"
 import {OrbitControls} from "../navigation/OrbitControls.js"
 
+import {ZoomableSlider} from "./ZoomableSlider.js"
+
 export class Sidebar{
 
 	constructor(viewer){
@@ -51,7 +53,7 @@ export class Sidebar{
 		this.initToolbar();
 		this.initScene();
 		this.initNavigation();
-		this.initClassificationList();
+		this.initFilters();
 		this.initClippingTool();
 		this.initSettings();
 		
@@ -239,25 +241,35 @@ export class Sidebar{
 			`);
 
 			let elDownloadJSON = elExport.find("img[name=geojson_export_button]").parent();
-			elDownloadJSON.click( () => {
+			elDownloadJSON.click( (event) => {
 				let scene = this.viewer.scene;
 				let measurements = [...scene.measurements, ...scene.profiles, ...scene.volumes];
 
-				let geoJson = GeoJSONExporter.toString(measurements);
+				if(measurements.length > 0){
+					let geoJson = GeoJSONExporter.toString(measurements);
 
-				let url = window.URL.createObjectURL(new Blob([geoJson], {type: 'data:application/octet-stream'}));
-				elDownloadJSON.attr('href', url);
+					let url = window.URL.createObjectURL(new Blob([geoJson], {type: 'data:application/octet-stream'}));
+					elDownloadJSON.attr('href', url);
+				}else{
+					this.viewer.postError("no measurements to export");
+					event.preventDefault();
+				}
 			});
 
 			let elDownloadDXF = elExport.find("img[name=dxf_export_button]").parent();
-			elDownloadDXF.click( () => {
+			elDownloadDXF.click( (event) => {
 				let scene = this.viewer.scene;
 				let measurements = [...scene.measurements, ...scene.profiles, ...scene.volumes];
 
-				let dxf = DXFExporter.toString(measurements);
+				if(measurements.length > 0){
+					let dxf = DXFExporter.toString(measurements);
 
-				let url = window.URL.createObjectURL(new Blob([dxf], {type: 'data:application/octet-stream'}));
-				elDownloadDXF.attr('href', url);
+					let url = window.URL.createObjectURL(new Blob([dxf], {type: 'data:application/octet-stream'}));
+					elDownloadDXF.attr('href', url);
+				}else{
+					this.viewer.postError("no measurements to export");
+					event.preventDefault();
+				}
 			});
 		}
 
@@ -340,8 +352,9 @@ export class Sidebar{
 		});
 
 		tree.on('dblclick','.jstree-anchor', (e) => {
-			let instance = $.jstree.reference(this);
-			let node = instance.get_node(this);
+
+			let instance = $.jstree.reference(e.target);
+			let node = instance.get_node(e.target);
 			let object = node.data;
 
 			// ignore double click on checkbox
@@ -673,6 +686,103 @@ export class Sidebar{
 
 	}
 
+	initFilters(){
+		this.initClassificationList();
+		this.initReturnFilters();
+		this.initGPSTimeFilters();
+
+	}
+
+	initReturnFilters(){
+		let elReturnFilterPanel = $('#return_filter_panel');
+
+		{ // RETURN NUMBER
+			let sldReturnNumber = elReturnFilterPanel.find('#sldReturnNumber');
+			let lblReturnNumber = elReturnFilterPanel.find('#lblReturnNumber');
+
+			sldReturnNumber.slider({
+				range: true,
+				min: 0, max: 7, step: 1,
+				values: [0, 7],
+				slide: (event, ui) => {
+					this.viewer.setFilterReturnNumberRange(ui.values[0], ui.values[1])
+				}
+			});
+
+			let onReturnNumberChanged = (event) => {
+				let [from, to] = this.viewer.filterReturnNumberRange;
+
+				lblReturnNumber[0].innerHTML = `${from} to ${to}`;
+				sldReturnNumber.slider({values: [from, to]});
+			};
+
+			this.viewer.addEventListener('filter_return_number_range_changed', onReturnNumberChanged);
+
+			onReturnNumberChanged();
+		}
+
+		{ // NUMBER OF RETURNS
+			let sldNumberOfReturns = elReturnFilterPanel.find('#sldNumberOfReturns');
+			let lblNumberOfReturns = elReturnFilterPanel.find('#lblNumberOfReturns');
+
+			sldNumberOfReturns.slider({
+				range: true,
+				min: 0, max: 7, step: 1,
+				values: [0, 7],
+				slide: (event, ui) => {
+					this.viewer.setFilterNumberOfReturnsRange(ui.values[0], ui.values[1])
+				}
+			});
+
+			let onNumberOfReturnsChanged = (event) => {
+				let [from, to] = this.viewer.filterNumberOfReturnsRange;
+
+				lblNumberOfReturns[0].innerHTML = `${from} to ${to}`;
+				sldNumberOfReturns.slider({values: [from, to]});
+			};
+
+			this.viewer.addEventListener('filter_number_of_returns_range_changed', onNumberOfReturnsChanged);
+
+			onNumberOfReturnsChanged();
+		}
+	}
+
+	initGPSTimeFilters(){
+		let elGPSTimeFilterPanel = $('#gpstime_filter_panel');
+
+		let lblGPSTime = elGPSTimeFilterPanel.find("#lblGPSTime");
+		let elGPS = elGPSTimeFilterPanel.find("#spnGPSTime");
+
+		let slider = new ZoomableSlider();
+		elGPS[0].appendChild(slider.element);
+		slider.update();
+
+		slider.change( () => {
+			let range = slider.chosenRange;
+			this.viewer.setFilterGPSTimeRange(range[0], range[1]);
+		});
+
+		let onGPSTimeExtentChanged = (event) => {
+			let range = this.viewer.filterGPSTimeExtent;
+			slider.setVisibleRange(range);
+		};
+
+		let onGPSTimeChanged = (event) => {
+			let range = this.viewer.filterGPSTimeRange;
+
+			let precision = 1;
+			let from = `${Utils.addCommas(range[0].toFixed(precision))}`;
+			let to = `${Utils.addCommas(range[1].toFixed(precision))}`;
+			lblGPSTime[0].innerHTML = `${from} to ${to}`;
+			
+			slider.setRange(range);
+		};
+
+		this.viewer.addEventListener('filter_gps_time_range_changed', onGPSTimeChanged);
+		this.viewer.addEventListener('filter_gps_time_extent_changed', onGPSTimeExtentChanged);
+
+	}
+
 	initClassificationList(){
 		let elClassificationList = $('#classificationList');
 
@@ -697,17 +807,9 @@ export class Sidebar{
 			elClassificationList.append(element);
 		};
 
-		addClassificationItem(0, 'never classified');
-		addClassificationItem(1, 'unclassified');
-		addClassificationItem(2, 'ground');
-		addClassificationItem(3, 'low vegetation');
-		addClassificationItem(4, 'medium vegetation');
-		addClassificationItem(5, 'high vegetation');
-		addClassificationItem(6, 'building');
-		addClassificationItem(7, 'low point(noise)');
-		addClassificationItem(8, 'key-point');
-		addClassificationItem(9, 'water');
-		addClassificationItem(12, 'overlap');
+		for (var classID in viewer.classifications) {
+			addClassificationItem(classID, viewer.classifications[classID].name);
+		}
 	}
 
 	initAccordion(){

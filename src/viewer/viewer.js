@@ -102,17 +102,23 @@ export class Viewer extends EventDispatcher{
 		this.moveSpeed = 10;
 
 		this.LENGTH_UNITS = {
-			METER: {code: 'm'},
-			FEET: {code: 'ft'},
-			INCH: {code: '\u2033'}
+			METER: {code: 'm', unitspermeter: 1.0},
+			FEET: {code: 'ft', unitspermeter: 3.28084},
+			INCH: {code: '\u2033', unitspermeter: 39.3701}
 		};
 		this.lengthUnit = this.LENGTH_UNITS.METER;
+		this.lengthUnitDisplay = this.LENGTH_UNITS.METER;
 
 		this.showBoundingBox = false;
 		this.showAnnotations = true;
 		this.freeze = false;
 		this.clipTask = ClipTask.HIGHLIGHT;
 		this.clipMethod = ClipMethod.INSIDE_ANY;
+
+		this.filterReturnNumberRange = [0, 7];
+		this.filterNumberOfReturnsRange = [0, 7];
+		this.filterGPSTimeRange = [0, Infinity];
+		this.filterGPSTimeExtent = [0, 1];
 
 		this.potreeRenderer = null;
 		this.edlRenderer = null;
@@ -132,6 +138,7 @@ export class Viewer extends EventDispatcher{
 		this.skybox = null;
 		this.clock = new THREE.Clock();
 		this.background = null;
+		this.defaultGPSTimeChanged = false;
 
 		this.initThree();
 
@@ -563,8 +570,47 @@ export class Viewer extends EventDispatcher{
 		}
 	};
 
+	setFilterReturnNumberRange(from, to){
+		this.filterReturnNumberRange = [from, to];
+		this.dispatchEvent({'type': 'filter_return_number_range_changed', 'viewer': this});
+	}
+
+	setFilterNumberOfReturnsRange(from, to){
+		this.filterNumberOfReturnsRange = [from, to];
+		this.dispatchEvent({'type': 'filter_number_of_returns_range_changed', 'viewer': this});
+	}
+
+	setFilterGPSTimeRange(from, to){
+		this.filterGPSTimeRange = [from, to];
+		this.dispatchEvent({'type': 'filter_gps_time_range_changed', 'viewer': this});
+	}
+
+	setFilterGPSTimeExtent(from, to){
+		this.filterGPSTimeExtent = [from, to];
+		this.dispatchEvent({'type': 'filter_gps_time_extent_changed', 'viewer': this});
+	}
+
 	setLengthUnit (value) {
 		switch (value) {
+			case 'm':
+				this.lengthUnit = this.LENGTH_UNITS.METER;
+				this.lengthUnitDisplay = this.LENGTH_UNITS.METER;
+				break;
+			case 'ft':
+				this.lengthUnit = this.LENGTH_UNITS.FEET;
+				this.lengthUnitDisplay = this.LENGTH_UNITS.FEET;
+				break;
+			case 'in':
+				this.lengthUnit = this.LENGTH_UNITS.INCH;
+				this.lengthUnitDisplay = this.LENGTH_UNITS.INCH;
+				break;
+		}
+
+		this.dispatchEvent({ 'type': 'length_unit_changed', 'viewer': this, value: value});
+	};
+
+	setLengthUnitAndDisplayUnit(lengthUnitValue, lengthUnitDisplayValue) {
+		switch (lengthUnitValue) {
 			case 'm':
 				this.lengthUnit = this.LENGTH_UNITS.METER;
 				break;
@@ -576,8 +622,20 @@ export class Viewer extends EventDispatcher{
 				break;
 		}
 
-		this.dispatchEvent({'type': 'length_unit_changed', 'viewer': this, value: value});
-	}
+		switch (lengthUnitDisplayValue) {
+			case 'm':
+				this.lengthUnitDisplay = this.LENGTH_UNITS.METER;
+				break;
+			case 'ft':
+				this.lengthUnitDisplay = this.LENGTH_UNITS.FEET;
+				break;
+			case 'in':
+				this.lengthUnitDisplay = this.LENGTH_UNITS.INCH;
+				break;
+		}
+
+		this.dispatchEvent({ 'type': 'length_unit_changed', 'viewer': this, value: lengthUnitValue });
+	};
 
 	zoomTo(node, factor, animationDuration = 0){
 		let view = this.scene.view;
@@ -1008,7 +1066,32 @@ export class Viewer extends EventDispatcher{
 		let width = this.renderArea.clientWidth;
 		let height = this.renderArea.clientHeight;
 
-		this.renderer = new THREE.WebGLRenderer({alpha: true, premultipliedAlpha: false});
+		let contextAttributes = {
+			alpha: true,
+			depth: true,
+			stencil: false,
+			antialias: false,
+			//premultipliedAlpha: _premultipliedAlpha,
+			preserveDrawingBuffer: true,
+			powerPreference: "high-performance",
+		};
+
+		let canvas = document.createElement("canvas");
+
+		//let context = canvas.getContext('webgl2', contextAttributes );
+		//if(!context){
+			let context = canvas.getContext('webgl', contextAttributes );
+			Potree.Features.WEBGL2.isSupported = () => {
+				return false;
+			};
+		//}
+
+
+		this.renderer = new THREE.WebGLRenderer({
+			alpha: true, 
+			premultipliedAlpha: false,
+			canvas: canvas,
+			context: context});
 		this.renderer.sortObjects = false;
 		this.renderer.setSize(width, height);
 		this.renderer.autoClear = false;
@@ -1025,10 +1108,18 @@ export class Viewer extends EventDispatcher{
 		gl.getExtension('EXT_frag_depth');
 		gl.getExtension('WEBGL_depth_texture');
 		
-		let extVAO = gl.getExtension('OES_vertex_array_object');
-		gl.createVertexArray = extVAO.createVertexArrayOES.bind(extVAO);
-		gl.bindVertexArray = extVAO.bindVertexArrayOES.bind(extVAO);
-		//gl.bindVertexArray = extVAO.asdfbindVertexArrayOES.bind(extVAO);
+		if(gl instanceof WebGLRenderingContext){
+			let extVAO = gl.getExtension('OES_vertex_array_object');
+
+			if(!extVAO){
+				throw new Error("OES_vertex_array_object extension not supported");
+			}
+
+			gl.createVertexArray = extVAO.createVertexArrayOES.bind(extVAO);
+			gl.bindVertexArray = extVAO.bindVertexArrayOES.bind(extVAO);
+		}else if(gl instanceof WebGL2RenderingContext){
+			gl.getExtension("EXT_color_buffer_float");
+		}
 		
 	}
 
@@ -1229,6 +1320,27 @@ export class Viewer extends EventDispatcher{
 					// pointcloud._intensityMaxEvaluated = true;
 				}
 			}
+
+			if(this.defaultGPSTimeChanged === false){
+
+				let root = pointcloud.pcoGeometry.root;
+				if (root != null && root.loaded) {
+					if(root.gpsTime){
+
+						let gpsTime = root.gpsTime;
+						let min = gpsTime.offset;
+						let max = gpsTime.offset + gpsTime.range;
+						let border = (max - min) * 0.1;
+
+						this.setFilterGPSTimeExtent(min - border, max + border);
+						//this.setFilterGPSTimeRange(0, 1000 * 1000 * 1000);
+						this.setFilterGPSTimeRange(min, max);
+
+						this.defaultGPSTimeChanged = true;
+					}
+				}
+
+			}
 			
 			pointcloud.showBoundingBox = this.showBoundingBox;
 			pointcloud.generateDEM = this.generateDEM;
@@ -1259,6 +1371,18 @@ export class Viewer extends EventDispatcher{
 			if (somethingChanged) {
 				pointcloud.material.recomputeClassification();
 			}
+		}
+
+		for (let pointcloud of this.scene.pointclouds) {
+			if(!pointcloud.visible){
+				continue;
+			}
+
+			let material = pointcloud.material;
+
+			material.uniforms.uFilterReturnNumberRange.value = this.filterReturnNumberRange;
+			material.uniforms.uFilterNumberOfReturnsRange.value = this.filterNumberOfReturnsRange;
+			material.uniforms.uFilterGPSTimeClipRange.value = this.filterGPSTimeRange;
 		}
 
 		{
