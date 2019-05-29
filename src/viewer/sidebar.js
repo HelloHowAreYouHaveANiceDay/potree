@@ -650,28 +650,29 @@ export class Sidebar{
 			}
 		));
 
-		{// SCREEN BOX SELECT
-			let boxSelectTool = new ScreenBoxSelectTool(this.viewer);
+		// TODO: change screen box to clipping plane
+		// {// SCREEN BOX SELECT
+		// 	let boxSelectTool = new ScreenBoxSelectTool(this.viewer);
 
-			clippingToolBar.append(this.createToolIcon(
-				Potree.resourcePath + "/icons/clip-screen.svg",
-				"[title]tt.screen_clip_box",
-				() => {
-					if(!(this.viewer.scene.getActiveCamera() instanceof THREE.OrthographicCamera)){
-						this.viewer.postMessage(`Switch to Orthographic Camera Mode before using the Screen-Box-Select tool.`, 
-							{duration: 2000});
-						return;
-					}
+		// 	clippingToolBar.append(this.createToolIcon(
+		// 		Potree.resourcePath + "/icons/clip-screen.svg",
+		// 		"[title]tt.screen_clip_box",
+		// 		() => {
+		// 			if(!(this.viewer.scene.getActiveCamera() instanceof THREE.OrthographicCamera)){
+		// 				this.viewer.postMessage(`Switch to Orthographic Camera Mode before using the Screen-Box-Select tool.`, 
+		// 					{duration: 2000});
+		// 				return;
+		// 			}
 					
-					let item = boxSelectTool.startInsertion();
+		// 			let item = boxSelectTool.startInsertion();
 
-					let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
-					let jsonNode = measurementsRoot.children.find(child => child.data.uuid === item.uuid);
-					$.jstree.reference(jsonNode.id).deselect_all();
-					$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
-				}
-			));
-		}
+		// 			let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+		// 			let jsonNode = measurementsRoot.children.find(child => child.data.uuid === item.uuid);
+		// 			$.jstree.reference(jsonNode.id).deselect_all();
+		// 			$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+		// 		}
+		// 	));
+		// }
 
 		{ // REMOVE CLIPPING TOOLS
 			clippingToolBar.append(this.createToolIcon(

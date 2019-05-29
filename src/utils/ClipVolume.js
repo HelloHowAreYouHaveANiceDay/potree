@@ -69,12 +69,14 @@ export class ClipVolume extends THREE.Object3D{
 		}
 
 		this.dimension = new THREE.Vector3(1, 1, 1);
+		// transparent box material
 		this.material = new THREE.MeshBasicMaterial( {
 			color: 0x00ff00, 
 			transparent: true, 
 			opacity: 0.3,
 			depthTest: true, 
 			depthWrite: false} );
+
 		this.box = new THREE.Mesh(boxGeometry, this.material);
 		this.box.geometry.computeBoundingBox();
 		this.boundingBox = this.box.geometry.boundingBox;
@@ -259,7 +261,8 @@ export class ClipVolume extends THREE.Object3D{
 		this.boundingBox = this.box.geometry.boundingBox;
 		this.boundingSphere = this.boundingBox.getBoundingSphere(new THREE.Sphere());
 		
-		this.box.visible = false;
+		// this.box.visible = false;
+		this.box.visible = true;
 
 		this.updateLocalSystem();
 	};
