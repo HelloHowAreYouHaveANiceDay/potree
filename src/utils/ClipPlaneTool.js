@@ -1,4 +1,5 @@
 import { Volume, BoxVolume } from "./Volume.js";
+import {ClipVolume} from './ClipVolume';
 import { Utils } from "../utils.js";
 import { EventDispatcher } from "../EventDispatcher.js";
 
@@ -60,11 +61,12 @@ export class ClipPlaneTool extends EventDispatcher {
 		if (args.type) {
 			volume = new args.type();
 		} else {
-			volume = new BoxVolume();
+			volume = new ClipVolume();
 		}
 
 		volume.clip = args.clip || false;
-		volume.name = args.name || 'Volume';
+		// volume.clip = false
+		volume.name = args.name || 'ClipPlaneVolume';
 
 		this.dispatchEvent({
 			type: 'start_inserting_volume',
