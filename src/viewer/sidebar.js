@@ -2,6 +2,7 @@
 import {MeasuringTool} from "../utils/MeasuringTool.js";
 import {ProfileTool} from "../utils/ProfileTool.js";
 import {VolumeTool} from "../utils/VolumeTool.js";
+import {ClipPlaneTool} from "../utils/ClipPlaneTool.js";
 
 import {GeoJSONExporter} from "../exporter/GeoJSONExporter.js"
 import {DXFExporter} from "../exporter/DXFExporter.js"
@@ -30,6 +31,7 @@ export class Sidebar{
 		this.measuringTool = new MeasuringTool(this.viewer);
 		this.profileTool = new ProfileTool(this.viewer);
 		this.volumeTool = new VolumeTool(this.viewer);
+		this.clipPlaneTool = new ClipPlaneTool(this.viewer);
 
 	}
 
@@ -467,6 +469,7 @@ export class Sidebar{
 			createNode(measurementID, measurement.name, icon, measurement);
 		};
 
+		// event callback for volume based inserts
 		let onVolumeAdded = (e) => {
 			let volume = e.volume;
 			let icon = Utils.getMeasurementIcon(volume);
@@ -503,6 +506,9 @@ export class Sidebar{
 		this.viewer.scene.addEventListener("measurement_added", onMeasurementAdded);
 		this.viewer.scene.addEventListener("profile_added", onProfileAdded);
 		this.viewer.scene.addEventListener("volume_added", onVolumeAdded);
+		// add plane clip
+		this.viewer.scene.addEventListener("plane_clip_volume_added", onVolumeAdded);
+
 		this.viewer.scene.addEventListener("polygon_clip_volume_added", onVolumeAdded);
 		this.viewer.scene.annotations.addEventListener("annotation_added", onAnnotationAdded);
 
@@ -587,11 +593,11 @@ export class Sidebar{
 
 
 		this.viewer.addEventListener("cliptask_changed", (event) => {
-			console.log("TODO");
+			console.log("cliptask_changed TODO");
 		});
 
 		this.viewer.addEventListener("clipmethod_changed", (event) => {
-			console.log("TODO");
+			console.log("cliptask_changed TODO");
 		});
 
 		{
@@ -635,13 +641,13 @@ export class Sidebar{
 				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
 			}
 		));
-
-		// CLIP POLYGON
+		
+		// CLIP Plane
 		clippingToolBar.append(this.createToolIcon(
-			Potree.resourcePath + "/icons/clip-polygon.svg",
-			"[title]tt.clip_polygon",
+			Potree.resourcePath + '/icons/clip-screen.svg',
+			'[title]tt.clip_plane',
 			() => {
-				let item = this.viewer.clippingTool.startInsertion({type: "polygon"});
+				let item = this.clipPlaneTool.startInsertion({clip: true}); 
 
 				let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
 				let jsonNode = measurementsRoot.children.find(child => child.data.uuid === item.uuid);
@@ -649,6 +655,20 @@ export class Sidebar{
 				$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
 			}
 		));
+
+		// CLIP POLYGON
+		// clippingToolBar.append(this.createToolIcon(
+		// 	Potree.resourcePath + "/icons/clip-polygon.svg",
+		// 	"[title]tt.clip_polygon",
+		// 	() => {
+		// 		let item = this.viewer.clippingTool.startInsertion({type: "polygon"});
+
+		// 		let measurementsRoot = $("#jstree_scene").jstree().get_json("measurements");
+		// 		let jsonNode = measurementsRoot.children.find(child => child.data.uuid === item.uuid);
+		// 		$.jstree.reference(jsonNode.id).deselect_all();
+		// 		$.jstree.reference(jsonNode.id).select_node(jsonNode.id);
+		// 	}
+		// ));
 
 		// TODO: change screen box to clipping plane
 		// {// SCREEN BOX SELECT

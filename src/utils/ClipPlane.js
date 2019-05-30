@@ -1,6 +1,6 @@
 
 
-export class ClipVolume extends THREE.Object3D{
+export class ClipPlane extends THREE.Object3D{
 	
 	constructor(args){
 		super();

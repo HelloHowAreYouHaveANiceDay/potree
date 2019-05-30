@@ -1,6 +1,7 @@
 
 import {ClipVolume} from "./ClipVolume.js";
 import {PolygonClipVolume} from "./PolygonClipVolume.js";
+import {ClipPlane} from './ClipPlane.js';
 import { EventDispatcher } from "../EventDispatcher.js";
 
 export class ClippingTool extends EventDispatcher{
@@ -49,6 +50,8 @@ export class ClippingTool extends EventDispatcher{
 			this.scene.removeEventListeners("clip_volume_removed", this.onRemove);
 			this.scene.removeEventListeners("polygon_clip_volume_added", this.onAdd);
 			this.scene.removeEventListeners("polygon_clip_volume_removed", this.onRemove);
+			// this.scene.removeEventListeners("plane_clip_volume_added", this.onAdd);
+			// this.scene.removeEventListeners("plane_clip_volume_removed", this.onRemove);
 		}
 		
 		this.scene = scene;
@@ -57,8 +60,11 @@ export class ClippingTool extends EventDispatcher{
 		this.scene.addEventListener("clip_volume_removed", this.onRemove);
 		this.scene.addEventListener("polygon_clip_volume_added", this.onAdd);
 		this.scene.addEventListener("polygon_clip_volume_removed", this.onRemove);
+		// this.scene.addEventListener("plane_clip_volume_added", this.onAdd);
+		// this.scene.addEventListener("plane_clip_volume_removed", this.onRemove);
 	}
 
+	// TODO: How to differentiate between inserting different things
 	startInsertion(args = {}) {	
 		let type = args.type || null;
 
