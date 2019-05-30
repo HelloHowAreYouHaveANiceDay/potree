@@ -82,6 +82,7 @@ export class Volume extends THREE.Object3D {
 
 			this.update();
 
+			console.info('clip changed')
 			this.dispatchEvent({
 				type: "clip_changed",
 				object: this

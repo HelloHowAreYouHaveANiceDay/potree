@@ -62,11 +62,12 @@ export class ClipPlaneTool extends EventDispatcher {
 			volume = new args.type();
 		} else {
 			volume = new ClipVolume();
+			// volume = new BoxVolume();
 		}
 
 		volume.clip = args.clip || false;
-		// volume.clip = false
-		volume.name = args.name || 'ClipPlaneVolume';
+		// warning: naming the volume anything but 'Volume' disables potree's internal clip
+		volume.name = args.name || 'Volume';
 
 		this.dispatchEvent({
 			type: 'start_inserting_volume',
@@ -75,6 +76,10 @@ export class ClipPlaneTool extends EventDispatcher {
 
 		this.viewer.scene.addVolume(volume);
 		this.scene.add(volume);
+
+		// add clipping planes
+		// TODO: when unchecked set global planes to null
+		// this.viewer.renderer.clippingPlanes = [volume.clipPlane]
 
 		let cancel = {
 			callback: null

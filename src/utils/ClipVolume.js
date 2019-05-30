@@ -1,8 +1,9 @@
 import { Volume } from './Volume';
 
-export class ClipVolume extends Volume {
 
-	constructor(args = {}) {
+export class ClipVolume extends Volume{
+
+	constructor(args = {}){
 		super(args);
 
 		this.constructor.counter = (this.constructor.counter === undefined) ? 0 : this.constructor.counter + 1;
@@ -47,21 +48,20 @@ export class ClipVolume extends Volume {
 			transparent: true,
 			opacity: 0.3,
 			depthTest: true,
-			depthWrite: false
-		});
+			depthWrite: false});
 		this.box = new THREE.Mesh(boxGeometry, this.material);
 		this.box.geometry.computeBoundingBox();
 		this.boundingBox = this.box.geometry.boundingBox;
 		this.add(this.box);
 
-		this.frame = new THREE.LineSegments(boxFrameGeometry, new THREE.LineBasicMaterial({ color: 0x000000 }));
+		this.frame = new THREE.LineSegments(boxFrameGeometry, new THREE.LineBasicMaterial({color: 0x000000}));
 		// this.frame.mode = THREE.Lines;
 		this.add(this.frame);
 
 		this.update();
 	}
 
-	update() {
+	update(){
 		this.boundingBox = this.box.geometry.boundingBox;
 		this.boundingSphere = this.boundingBox.getBoundingSphere(new THREE.Sphere());
 
@@ -74,7 +74,7 @@ export class ClipVolume extends Volume {
 		}
 	}
 
-	raycast(raycaster, intersects) {
+	raycast (raycaster, intersects) {
 		let is = [];
 		this.box.raycast(raycaster, is);
 
@@ -88,7 +88,7 @@ export class ClipVolume extends Volume {
 		}
 	}
 
-	getVolume() {
+	getVolume(){
 		return Math.abs(this.scale.x * this.scale.y * this.scale.z);
 	}
 

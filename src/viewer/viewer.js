@@ -12,6 +12,7 @@ import {Utils} from "../utils.js";
 import {MapView} from "./map.js";
 import {ProfileWindow, ProfileWindowController} from "./profile.js";
 import {BoxVolume} from "../utils/Volume.js";
+import {ClipVolume} from "../utils/ClipVolume.js";
 import {Features} from "../Features.js";
 import {Message} from "../utils/Message.js";
 import {Sidebar} from "./sidebar.js";
@@ -1534,7 +1535,7 @@ export class Viewer extends EventDispatcher{
 			
 			// volumes with clipping enabled
 			//boxes.push(...this.scene.volumes.filter(v => (v.clip)));
-			boxes.push(...this.scene.volumes.filter(v => (v.clip && v instanceof BoxVolume)));
+			boxes.push(...this.scene.volumes.filter(v => (v.clip && (v instanceof BoxVolume || v instanceof ClipVolume))));
 
 			// profile segments
 			for(let profile of this.scene.profiles){

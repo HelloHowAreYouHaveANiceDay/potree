@@ -396,6 +396,7 @@ export class Sidebar{
 				}
 			}else if(object instanceof Annotation){
 				object.moveHere(this.viewer.scene.getActiveCamera());
+		    //TODO: add camera reaction to clip plane
 			}else if(object instanceof PolygonClipVolume){
 				let dir = object.camera.getWorldDirection(new THREE.Vector3());
 				let target;
