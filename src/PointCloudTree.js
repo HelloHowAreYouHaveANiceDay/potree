@@ -1,8 +1,7 @@
 
-
 import { EventDispatcher } from "./EventDispatcher";
 
-
+// point cloud tree node is inherited by the specific type based loaders
 export class PointCloudTreeNode extends EventDispatcher{
 
 	constructor(){

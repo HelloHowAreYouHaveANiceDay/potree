@@ -1,3 +1,4 @@
+// NOTES: features display, don't have to include in a rewrite.
 
 const Features = (function () {
 	let ftCanvas = document.createElement('canvas');

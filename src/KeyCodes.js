@@ -1,4 +1,4 @@
-
+// NOTES: configuration, could be converted into a settings file
 
 export const KeyCodes = {
 

@@ -1,10 +1,14 @@
-
+// MAIN api endpoint
 export * from "./Actions.js";
 export * from "./AnimationPath.js";
 export * from "./Annotation.js";
 export * from "./defines.js";
 export * from "./Enum.js";
+
+// most other modules inhereit from event dispatcher
 export * from "./EventDispatcher.js";
+
+
 export * from "./Features.js";
 export * from "./KeyCodes.js";
 export * from "./LRU.js";
@@ -18,9 +22,13 @@ export * from "./Potree_update_visibility.js";
 export * from "./PotreeRenderer.js";
 export * from "./ProfileRequest.js";
 export * from "./TextSprite.js";
+
+
 export * from "./utils.js";
 export * from "./Version.js";
 export * from "./WorkerPool.js";
+
+// xhr handles web requests
 export * from "./XHRFactory.js";
 
 export * from "./materials/ClassificationScheme.js";
@@ -64,13 +72,20 @@ import "./extensions/OrthographicCamera.js";
 import "./extensions/PerspectiveCamera.js";
 import "./extensions/Ray.js";
 
+// unused imports
 import {PointColorType} from "./defines";
 import {Enum} from "./Enum";
+import {EptLoader} from "./loader/EptLoader";
+
+
 import {LRU} from "./LRU";
+
+// Loaders handle loading different point cloud types
 import {POCLoader} from "./loader/POCLoader";
 import {GreyhoundLoader} from "./loader/GreyhoundLoader";
-import {EptLoader} from "./loader/EptLoader";
 import {PointCloudOctree} from "./PointCloudOctree";
+
+// worker pool spawns webworkers to load xhr requests
 import {WorkerPool} from "./WorkerPool";
 
 export const workerPool = new WorkerPool();
@@ -114,6 +129,8 @@ export function loadPointCloud(path, name, callback){
 	};
 
 	// load pointcloud
+
+	// NOTE: code uses path to determine what loader to use. 
 	if (!path){
 		// TODO: callback? comment? Hello? Bueller? Anyone?
 	} else if (path.indexOf('ept.json') > 0) {
@@ -165,6 +182,7 @@ export function loadPointCloud(path, name, callback){
 
 
 // add selectgroup
+// NOTE: jQuery Extension. Try to remove
 (function($){
 	$.fn.extend({
 		selectgroup: function(args = {}){

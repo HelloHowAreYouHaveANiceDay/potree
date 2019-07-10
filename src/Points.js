@@ -1,4 +1,4 @@
-
+// NOTES: points handler.
 
 export class Points {
 	
