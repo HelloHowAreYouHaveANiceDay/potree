@@ -1,7 +1,7 @@
 import { Volume } from './Volume';
 
 
-export class ClipVolume extends Volume{
+export class ClipVolume extends Volume {
 
 	constructor(args = {}){
 		super(args);
@@ -37,11 +37,15 @@ export class ClipVolume extends Volume{
 			boxFrameGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0.5));
 			boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0.5));
 			boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0.5));
-			boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
-			boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, 0.5, -0.5));
-			boxFrameGeometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
-			boxFrameGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
+
+			// boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
+			// boxFrameGeometry.vertices.push(new THREE.Vector3(0.5, 0.5, -0.5));
+			// boxFrameGeometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
+			// boxFrameGeometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
 		}
+
+		let clipPlane = new THREE.Plane( new THREE.Vector3( , 0, 0 ), 0);
+		this.clipPlane = clipPlane
 
 		this.material = new THREE.MeshBasicMaterial({
 			color: 0x00ff00,
@@ -49,14 +53,16 @@ export class ClipVolume extends Volume{
 			opacity: 0.3,
 			depthTest: true,
 			depthWrite: false});
+
 		this.box = new THREE.Mesh(boxGeometry, this.material);
+
 		this.box.geometry.computeBoundingBox();
 		this.boundingBox = this.box.geometry.boundingBox;
 		this.add(this.box);
 
-		this.frame = new THREE.LineSegments(boxFrameGeometry, new THREE.LineBasicMaterial({color: 0x000000}));
+		// this.frame = new THREE.LineSegments(boxFrameGeometry, new THREE.LineBasicMaterial({color: 0x000000}));
 		// this.frame.mode = THREE.Lines;
-		this.add(this.frame);
+		// this.add(this.frame);
 
 		this.update();
 	}

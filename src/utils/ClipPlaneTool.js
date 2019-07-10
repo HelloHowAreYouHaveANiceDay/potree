@@ -79,7 +79,7 @@ export class ClipPlaneTool extends EventDispatcher {
 
 		// add clipping planes
 		// TODO: when unchecked set global planes to null
-		// this.viewer.renderer.clippingPlanes = [volume.clipPlane]
+		this.viewer.renderer.clippingPlanes = [volume.clipPlane]
 
 		let cancel = {
 			callback: null
@@ -95,12 +95,15 @@ export class ClipPlaneTool extends EventDispatcher {
 				this.viewer.scene.pointclouds,
 				{ pickClipped: false });
 
+			// console.log('drag', I)
+
 			if (I) {
 				volume.position.copy(I.location);
 
 				let wp = volume.getWorldPosition(new THREE.Vector3()).applyMatrix4(camera.matrixWorldInverse);
 				// let pp = new THREE.Vector4(wp.x, wp.y, wp.z).applyMatrix4(camera.projectionMatrix);
 				let w = Math.abs((wp.z / 5));
+				console.log('world position', wp)
 				volume.scale.set(w, w, w);
 			}
 		};
