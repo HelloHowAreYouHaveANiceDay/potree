@@ -26,6 +26,7 @@ export function updatePointClouds(pointclouds, camera, renderer){
 		pointcloud.updateVisibleBounds();
 	}
 
+	// NOTES: why is this using exports?
 	exports.lru.freeMemory();
 
 	return result;
@@ -101,7 +102,10 @@ export function updateVisibilityStructures(pointclouds, camera, renderer) {
 
 export function updateVisibility(pointclouds, camera, renderer){
 
+	// NOTES: numVisibleNodes is not used
 	let numVisibleNodes = 0;
+
+
 	let numVisiblePoints = 0;
 
 	let numVisiblePointsInPointclouds = new Map(pointclouds.map(pc => [pc, 0]));
@@ -120,7 +124,9 @@ export function updateVisibility(pointclouds, camera, renderer){
 
 	let loadedToGPUThisFrame = 0;
 	
+	// NOTES: domWidth is not used
 	let domWidth = renderer.domElement.clientWidth;
+
 	let domHeight = renderer.domElement.clientHeight;
 
 	// check if pointcloud has been transformed
@@ -128,7 +134,9 @@ export function updateVisibility(pointclouds, camera, renderer){
 	if(!Potree._pointcloudTransformVersion){
 		Potree._pointcloudTransformVersion = new Map();
 	}
+
 	let pointcloudTransformVersion = Potree._pointcloudTransformVersion;
+
 	for(let pointcloud of pointclouds){
 
 		if(!pointcloud.visible){
@@ -182,7 +190,7 @@ export function updateVisibility(pointclouds, camera, renderer){
 
 		
 
-
+		// NOTE: not sure why is this set to true?
 		if(!window.warned125){
 			console.log("TODO");
 			window.warned125 = true;
@@ -242,6 +250,8 @@ export function updateVisibility(pointclouds, camera, renderer){
 				//	window.debugdraw = false;
 				//}
 
+
+				// NOTE: tests from frustum intersection with the viewport
 				let frustum = new THREE.Frustum(pxPlane, nxPlane, pyPlane, nyPlane, pzPlane, nzPlane);
 				let intersects = frustum.intersectsBox(box);
 

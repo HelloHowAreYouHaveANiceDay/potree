@@ -317,13 +317,15 @@ export class PointCloudOctree extends PointCloudTree {
 			return t1;
 		};
 
+		// NOTES: these are declared but never used
 		let lodRanges = new Map();
 		let leafNodeLodRanges = new Map();
-
 		let bBox = new THREE.Box3();
 		let bSphere = new THREE.Sphere();
-		let worldDir = new THREE.Vector3();
 		let cameraRay = new THREE.Ray(camera.position, camera.getWorldDirection(worldDir));
+		// unused variables end
+
+		let worldDir = new THREE.Vector3();
 
 		let nodeMap = new Map();
 		let offsetsToChild = new Array(nodes.length).fill(Infinity);

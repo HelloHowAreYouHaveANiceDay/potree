@@ -15,7 +15,7 @@ class LRUItem{
  * @class A doubly-linked-list of the least recently used elements.
  */
 
-// NOTES: LRU 
+// NOTES: LRU manages when to load and unload new data
 class LRU{
 
 	constructor(){
